@@ -1,43 +1,53 @@
 import BoopManager.{DoneBooping, StartBooping}
 import akka.actor.{PoisonPill, Props, Actor}
 
-class BoopMaster extends Actor {
+object BoopMaster{
 
-  val getBooped = Array.fill(100)(0.0)
+  case class Done[S](res:Vector[S])
 
-  def f(x: Double) = x + 1
+  def props[T, S](getBooped: Vector[T], f: T => S, numWorkers: Int): Props =
+    Props(new BoopMaster[T, S](getBooped, f, numWorkers))
+}
 
-  val numWorkers = 5
+class BoopMaster[T,S](getBooped:Vector[T],f:T=> S, numWorkers:Int=5) extends Actor {
 
+  import BoopMaster._
+  import TestActor._
 
-  var startIdx: Int = 0
-  var boopedArray: Array[Double] = Array.empty
+  var boopedArray = Vector.empty[(Int,Vector[S])]
   var groupsFinished: Int = 0
-
   val boopPartition = getBooped.grouped(numWorkers).toArray
-
-
-  boopPartition.foreach { boopGroup =>
-
-    val groupManager = context.actorOf(BoopManager.props(boopGroup, startIdx))
-
-    groupManager ! StartBooping(f)
-
-    startIdx += boopGroup.size
-  }
+  var idx=0
 
   def receive = {
 
-    case DoneBooping(booped, startIdx) => {
+    case begin()=>{
 
-      boopedArray ++= booped
+      boopPartition.foreach { boopGroup =>
+
+        val groupManager = context.actorOf(BoopManager.props[T,S](boopGroup.toVector,f,idx))
+
+        groupManager ! StartBooping
+
+        idx+=1
+      }
+    }
+
+    case DoneBooping(booped,idx) => {
+
+      val realBooped=booped.asInstanceOf[Vector[S]]
+
+      boopedArray :+= ((idx,realBooped))
       groupsFinished += 1
 
       sender ! PoisonPill
 
       if (groupsFinished == boopPartition.size) {
-        println("Done Booping!")
-        println(boopedArray.toList)
+
+        val finalVector=boopedArray.sortBy(_._1).map(_._2).flatten
+
+        context.parent ! Done(finalVector)
+
         context.stop(self)
       }
 

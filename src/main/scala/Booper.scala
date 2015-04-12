@@ -2,9 +2,9 @@ import akka.actor.Actor
 
 object Booper {
 
-  case class BoopThis(id: Int, elem: Double, f: Double => Double)
+  case class BoopThis[T,S](id: Int, elem: T, f: T => S)
 
-  case class FinishedBoop(id: Int, boop: Double)
+  case class FinishedBoop[S](id: Int, boop: S)
 
 }
 

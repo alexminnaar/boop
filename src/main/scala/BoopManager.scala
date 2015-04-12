@@ -1,32 +1,34 @@
 import akka.actor.{PoisonPill, Props, ActorRef, Actor}
 
+import scala.reflect.ClassTag
+
 
 object BoopManager {
 
-  case class StartBooping(f: Double => Double)
+  case object StartBooping
 
-  case class DoneBooping(fullyBooped: Array[Double], startIdx: Int)
+  case class DoneBooping[S](fullyBooped: Vector[S],idx:Int)
 
-  def props(boopThese:Array[Double],startIdx:Int)=Props(classOf[BoopManager],boopThese,startIdx)
+  def props[T, S](boopThese: Vector[T], f: T => S,idx :Int): Props = Props(new BoopManager[T, S](boopThese, f,idx))
 
 }
 
 
-class BoopManager(boopThese: Array[Double], startIdx: Int) extends Actor {
+class BoopManager[T, S](boopThese: Vector[T], f: T => S, idx:Int) extends Actor {
 
   import BoopManager._
   import Booper._
 
   var boopsSent: Int = 0
   var boopsReceived: Int = 0
-  var booped: Array[Double] = Array.fill(boopThese.size)(0.0)
+  var booped =  Vector.empty[S]
 
 
   val myBooper: ActorRef = context.actorOf(Props[Booper], "booper")
 
   def receive = {
 
-    case StartBooping(f) => {
+    case StartBooping => {
 
       boopThese.foreach { el =>
         myBooper ! BoopThis(boopsSent, el, f)
@@ -38,17 +40,16 @@ class BoopManager(boopThese: Array[Double], startIdx: Int) extends Actor {
     case FinishedBoop(id, boop) => {
 
       boopsReceived += 1
-      booped(id) = boop
+      booped :+= boop.asInstanceOf[S]
 
-      //All elements have been transformed
+
       if (boopsSent == boopsReceived) {
 
-        context.parent ! DoneBooping(booped, startIdx)
+        context.parent ! DoneBooping(booped,idx)
 
         myBooper ! PoisonPill
       }
     }
-
 
   }
 
