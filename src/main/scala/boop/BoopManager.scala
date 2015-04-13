@@ -1,27 +1,27 @@
-import akka.actor.{PoisonPill, Props, ActorRef, Actor}
+package boop
 
-import scala.reflect.ClassTag
+import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 
 
 object BoopManager {
 
   case object StartBooping
 
-  case class DoneBooping[S](fullyBooped: Vector[S],idx:Int)
+  case class DoneBooping[S](fullyBooped: Vector[S], idx: Int)
 
-  def props[T, S](boopThese: Vector[T], f: T => S,idx :Int): Props = Props(new BoopManager[T, S](boopThese, f,idx))
+  def props[T, S](boopThese: Vector[T], f: T => S, idx: Int): Props = Props(new BoopManager[T, S](boopThese, f, idx))
 
 }
 
 
-class BoopManager[T, S](boopThese: Vector[T], f: T => S, idx:Int) extends Actor {
+class BoopManager[T, S](boopThese: Vector[T], f: T => S, idx: Int) extends Actor {
 
-  import BoopManager._
-  import Booper._
+  import boop.BoopManager._
+  import boop.Booper._
 
   var boopsSent: Int = 0
   var boopsReceived: Int = 0
-  var booped =  Vector.empty[S]
+  var booped = Vector.empty[S]
 
 
   val myBooper: ActorRef = context.actorOf(Props[Booper], "booper")
@@ -45,7 +45,7 @@ class BoopManager[T, S](boopThese: Vector[T], f: T => S, idx:Int) extends Actor 
 
       if (boopsSent == boopsReceived) {
 
-        context.parent ! DoneBooping(booped,idx)
+        context.parent ! DoneBooping(booped, idx)
 
         myBooper ! PoisonPill
       }
