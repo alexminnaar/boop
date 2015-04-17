@@ -13,6 +13,12 @@ object BoopMaster {
     Props(new BoopMaster[T, S](getBooped, f, numWorkers))
 }
 
+/**
+ * Partition the input vector and receive partition results
+ * @param getBooped vector to process
+ * @param f function to apply to vector
+ * @param numWorkers number of partitions
+ */
 class BoopMaster[T, S](getBooped: Vector[T], f: T => S, numWorkers: Int = 5) extends Actor {
 
   import boop.BoopMaster._
@@ -47,6 +53,7 @@ class BoopMaster[T, S](getBooped: Vector[T], f: T => S, numWorkers: Int = 5) ext
 
       if (groupsFinished == boopPartition.size) {
 
+        //partitions could have arrived out of order so sort it just in case.
         val finalVector = boopedArray.sortBy(_._1).map(_._2).flatten
 
         context.parent ! Done(finalVector)

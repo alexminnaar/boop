@@ -13,7 +13,12 @@ object BoopManager {
 
 }
 
-
+/**
+ * Apply function to partition and return the result to BoopMaster parent
+ * @param boopThese partition to process
+ * @param f function to apply to partition
+ * @param idx index of parition
+ */
 class BoopManager[T, S](boopThese: Vector[T], f: T => S, idx: Int) extends Actor {
 
   import boop.BoopManager._

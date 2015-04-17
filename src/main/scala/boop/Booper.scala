@@ -10,6 +10,9 @@ object Booper {
 
 }
 
+/**
+ * Simply apply the function to the element
+ */
 class Booper extends Actor {
 
   import boop.Booper._
